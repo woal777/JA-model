@@ -2,6 +2,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy import interpolate
+import math
 
 class Hysteresis:
     def __init__(self):
@@ -58,40 +59,9 @@ class Hysteresis:
             Mirr.append(Mirr[i] + dMirrdH[i + 1] * (self.H[i+1] - self.H[i]))
             M.append(self.c * Man[i + 1] + (1 - self.c) * Mirr[i + 1])
 
-        print(f'{self.alpha:0.5f}, {self.c:0.5f}, {self.k:0.5f}')
-
-        d_point = Nfirst + 1
-        r_point = Nfirst + Ndown // 2
-        hi_d = (M[d_point - 1] - M[d_point]) / self.DeltaH
-        hi_dan =  (Man[d_point - 1] - Man[d_point]) / self.DeltaH
-        hi_r = (M[r_point - 1] - M[r_point]) / self.DeltaH
-        hi_ran =  (Man[r_point - 1] - Man[r_point]) / self.DeltaH
-
-        # self.alpha = (1-self.c) * (self.k / (M[r_point] - Man[r_point]) - 1 / (hi_r - self.c * hi_ran))
-
-        self.c = hi_d / hi_dan
-        for i in range(len(self.H) - 1):
-            if M[i + 1] * M[i] < 0:
-                if delta[i] == 1:
-                    hi_c = (M[i + 1] - M[i]) / self.DeltaH
-                    hi_can =  (Man[i + 1] - Man[i]) / self.DeltaH
-                    self.k = Man[i] / (1 - self.c) * (self.alpha + (1 - self.c) / (1 * hi_c - self.c * hi_can))
-        r_point = Nfirst + Ndown // 2
-        hi_td = (M[r_point - 1] - M[r_point]) / self.DeltaH
-        hi_tdan =  (Man[r_point - 1] - Man[r_point]) / self.DeltaH
-        '''
-        Remanence point:
-        '''
-        # print(Man[r_point] + self.k / (self.alpha / (1 - self.c) \
-                                                #    + 1 / (hi_r - self.c * hi_an)))
         return np.array(M[Nfirst:])
 
-#%%
-arr = np.genfromtxt('exp.dat')
-# ind = np.where(np.abs(arr[:,1] - arr[:,1][::-1])> 2e+3)[0]
-# arr = arr[ind, :]
-
-# plt.plot(arr[:,0], arr[:,1])
+arr = np.genfromtxt('inter_exp.dat')
 m = Hysteresis()
 m.plot()
 #%%
@@ -103,15 +73,46 @@ ynew.extend(f(m.H[125 + 250:]))
 # plt.plot(m.H[125:], ynew)
 np.savetxt('inter_exp.dat', np.array([m.H[125:], ynew]).T)
 
-# %%
 m = Hysteresis()
-m.c = 0.0414261 
-m.a = 65103.36 # mag of H
-m.alpha = 0.09131052  # neigligiable
+#%%
+msd = []
+xarr = np.linspace(0.1, 2, 20) # b
+yarr = np.linspace(0.2, 1.9, 20) # c
+# plt.plot(m.H[125:], ynew, color='r')
+for b in xarr:
+    for c in yarr:
+        m.c = 0.0414261 * 1.5 * b
+        m.a = 4000 * 16  # slope
+        m.alpha = 0.09131052 * 1 * c   # slope
+        m.k = 168993.396 # coercivity
+        y = m.plot()
+        # plt.plot(m.H[125:], y, '--')
+        # plt.plot(m.H[125:], (m.plot() - ynew) ** 2, label=a)
+        msd.append(np.sqrt(np.sum((ynew - y) ** 2) / len(ynew)))
+
+fig = plt.figure()
+xi, yi = np.meshgrid(xarr, yarr)
+cs = plt.contourf(xi, yi, np.reshape(msd, (20, -1)))
+cbar = fig.colorbar(cs)
+
+#%%
+# xarr[np.argmin(msd)]
+# plt.legend()
+# plt.show()
+
+# plt.plot(xarr, msd)
+# xarr[np.argmin(msd)]
+# plt.legend()
+# plt.show()
+
+# plt.plot(arr[:,1] - arr[:,1][::-1])
+
+
+# %%
+m.c = 0.0414261 *  0.5
+m.a = 4000 * 16 # mag of H
+m.alpha = 0.09131052 * 0.3  # neigligiable
 m.k = 168993.396 # coercivity
 plt.plot(m.H[125:], ynew)
-for i in range(2):
-    y = m.plot()
-    if i % 4 == 0:
-        plt.plot(m.H[125:], y)
+plt.plot(m.H[125:], m.plot())
 # %%
